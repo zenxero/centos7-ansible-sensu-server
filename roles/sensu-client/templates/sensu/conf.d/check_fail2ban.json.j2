@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "check_fail2ban": {
+      "command": "{{ nrpe_lib }}/check_procs -c 1: -C fail2ban-server",
+      "standalone": true,
+      "interval": 60,
+      "occurrences": 5,
+      "refresh": 300
+    }
+  }
+}

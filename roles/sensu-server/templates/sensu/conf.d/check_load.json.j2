@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "check_load": {
+      "command": "{{ nrpe_lib }}/check_load -w 35,30,25 -c 50,45,40",
+      "standalone": true,
+      "interval": 60,
+      "occurrences": 5,
+      "refresh": 300
+    }
+  }
+}

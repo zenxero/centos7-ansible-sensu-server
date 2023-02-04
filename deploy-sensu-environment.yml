@@ -1,0 +1,26 @@
+---
+
+#
+# deploy-sensu-environment.yml
+#
+# This playbook will configure a monitoring environment with a Sensu master
+# server and monitored clients.
+#
+
+- hosts: all
+  remote_user: root
+  tasks: []
+
+- hosts: sensu-server
+  remote_user: root
+  vars_files:
+    - "vars/{{ ansible_os_family }}.yml"
+  roles:
+    - sensu-server
+
+- hosts: monitored-servers
+  remote_user: root
+  vars_files:
+    - "vars/{{ ansible_os_family }}.yml"
+  roles:
+    - sensu-client

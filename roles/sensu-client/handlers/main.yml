@@ -1,0 +1,13 @@
+---
+
+#
+# sensu client handlers
+#
+# Restart only when changes are made.
+#
+
+- name: restart sensu-client
+  service:
+    name: sensu-client
+    state: restarted
+    enabled: yes

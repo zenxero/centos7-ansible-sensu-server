@@ -1,0 +1,11 @@
+#
+# Hosts definition file for systems to act on.
+#
+
+# Define your master sensu server here
+[sensu-server]
+
+
+# Monitored servers group
+# Define the hosts that you want to monitor here
+[monitored-servers]

@@ -1,0 +1,9 @@
+---
+
+#
+# Sensu username and password for the server to connect with clients
+# as well as the password for the rabbitmq user on the server
+#
+
+sensu_user: sensudemo
+sensu_password: sensudemo

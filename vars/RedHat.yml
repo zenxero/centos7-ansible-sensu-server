@@ -1,0 +1,5 @@
+#
+# Nagios plugin client variables for RedHat-based systems like CentOS.
+#
+
+nrpe_lib: /usr/lib64/nagios/plugins

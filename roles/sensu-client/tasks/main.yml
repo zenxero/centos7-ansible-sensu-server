@@ -1,0 +1,87 @@
+---
+
+#
+# sensu-client
+#
+# This role configures the system to be a client that can be monitored
+# from the sensu master server.
+#
+
+- name: Copy RedHat sensu repo file
+  copy:
+    src: files/yum.repos.d/sensu.repo
+    dest: /etc/yum.repos.d/sensu.repo
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_os_family == "RedHat"
+
+- name: Copy Ubuntu sensu repo file
+  template:
+    src: templates/sources.list.d/sensu.list.j2
+    dest: /etc/apt/sources.list.d/sensu.list
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == "Ubuntu"
+
+- name: Add sensu apt gpg key
+  apt_key:
+    url: https://sensu.global.ssl.fastly.net/apt/pubkey.gpg
+    state: present
+  when: ansible_distribution == "Ubuntu"
+
+# RedHat packages
+- name: Install packages
+  yum:
+    pkg: "{{ item }}"
+    state: present
+  with_items:
+    - nagios-plugins-all
+    - nagios-plugins-check-updates
+    - nagios-plugins-nrpe
+    - nagios-plugins-openmanage
+    - sensu
+  when: ansible_os_family == "RedHat"
+
+# Ubuntu packages
+- name: Install packages
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - nagios-plugins-basic
+    - nagios-plugins-common
+    - nagios-plugins-standard
+    - nagios-plugins-extra
+    - sensu
+  when: ansible_distribution == "Ubuntu"
+
+- name: Ensure /etc/sensu/conf.d config directory exists
+  file:
+    path: /etc/sensu/conf.d
+    state: directory
+    owner: sensu
+    group: sensu
+    mode: 0755
+
+- name: Create sensu templates
+  template:
+    src: "{{ item }}"
+    dest: /etc/sensu/conf.d/{{ item | basename | regex_replace('.j2','') }}
+    owner: sensu
+    group: sensu
+    mode: 0644
+  with_fileglob:
+    - ../templates/sensu/conf.d/*.j2
+  notify: restart sensu-client
+
+- name: Ensure sensu directory permissions
+  file:
+    path: /etc/sensu
+    owner: sensu
+    group: sensu
+    mode: u=rwX,g=rX,o=rX
+    recurse: yes
+  notify: restart sensu-client

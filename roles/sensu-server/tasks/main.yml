@@ -1,0 +1,211 @@
+---
+
+#
+# deploy-sensu-server
+#
+# This playbook configures the target system to be a Sensu monitoring server.
+#
+
+# All tasks are grouped in a block/when statement so that this only runs against a CentOS 7 system.
+- block:
+
+#############################
+# Pre-Reqs
+#############################
+
+  # Set selinux to permissive
+  - selinux:
+      policy: targeted
+      state: permissive
+
+  - name: Ensure firewalld is disabled and stopped
+    service:
+      name: firewalld
+      state: stopped
+      enabled: no
+
+#############################
+# Repo setup
+#############################
+
+  - name: Copy sensu repo file to server
+    copy:
+      src: files/yum.repos.d/sensu.repo
+      dest: /etc/yum.repos.d/sensu.repo
+      owner: root
+      group: root
+      mode: 0644
+
+#############################
+# Package installs
+#############################
+
+  - name: Install sensu packages
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - curl
+      - erlang
+      - jq
+      - redis
+      - mod_ssl
+      - nagios-plugins-all
+      - nagios-plugins-check-updates
+      - nagios-plugins-nrpe
+      - nagios-plugins-openmanage
+      - nginx
+      - sensu
+      - socat
+      - uchiwa
+
+  - name: Copy rabbitmq signing key to server
+    copy:
+      src: files/rabbitmq/rabbitmq-signing-key-public.asc
+      dest: /tmp/rabbitmq-signing-key-public.asc
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Copy rabbitmq rpm to server
+    copy:
+      src: files/rabbitmq/rabbitmq-server-3.6.15-1.el7.noarch.rpm
+      dest: /tmp/rabbitmq-server-3.6.15-1.el7.noarch.rpm
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Import rabbitmq signing key
+    rpm_key:
+      key: /tmp/rabbitmq-signing-key-public.asc
+      state: present
+
+  - name: Install rabbitmq rpm
+    yum:
+      name: /tmp/rabbitmq-server-3.6.15-1.el7.noarch.rpm
+      state: present
+
+#############################
+# RabbitMQ configuration
+#############################
+
+  - name: Enable the rabbitmq_management plugin
+    rabbitmq_plugin:
+      names: rabbitmq_management
+      state: enabled
+
+  - name: Ensure rabbitmq-server is running and enabled
+    service:
+      name: rabbitmq-server
+      state: started
+      enabled: yes
+
+  - name: Ensure redis is running and enabled
+    service:
+      name: redis
+      state: started
+      enabled: yes
+
+  - name: Create rabbitmq sensu vhost
+    rabbitmq_vhost:
+      name: /sensu
+      state: present
+
+  - name: Create rabbitmq sensu user
+    rabbitmq_user:
+      user: "{{ sensu_user }}"
+      password: "{{ sensu_password }}"
+      vhost: /sensu
+      configure_priv: .*
+      read_priv: .*
+      write_priv: .*
+      state: present
+
+#############################
+# Sensu configurations
+#############################
+
+  - name: Copy sensu config files to server
+    synchronize:
+      src: files/sensu/
+      dest: /etc/sensu/
+      delete: no
+      perms: no
+      recursive: yes
+
+  - name: Create sensu templates
+    template:
+      src: "{{ item }}"
+      dest: /etc/sensu/conf.d/{{ item | basename | regex_replace('.j2','') }}
+      owner: sensu
+      group: sensu
+      mode: 0644
+    with_fileglob:
+      - ../templates/sensu/conf.d/*.j2
+
+  - name: Copy sensu uchiwa template file
+    template:
+      src: templates/sensu/uchiwa.json.j2
+      dest: /etc/sensu/uchiwa.json
+      owner: sensu
+      group: sensu
+      mode: 0644
+
+  - name: Ensure sensu directory permissions
+    file:
+      path: /etc/sensu
+      owner: sensu
+      group: sensu
+      mode: u=rwX,g=rX,o=rX
+      recurse: yes
+
+#############################
+# NGINX configurations
+#############################
+
+  # - name: Allow Uchiwa to bind to root ports
+  #   command: setcap 'cap_net_bind_service=+ep' /opt/uchiwa/bin/uchiwa
+
+  - name: Copy nginx default config file
+    copy:
+      src: files/nginx/nginx.conf
+      dest: /etc/nginx/nginx.conf
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Copy uchiwa nginx http redirect config file
+    copy:
+      src: files/nginx/uchiwa.conf
+      dest: /etc/nginx/conf.d/uchiwa.conf
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Copy uchiwa nginx ssl proxy template file
+    template:
+      src: templates/nginx/uchiwa-ssl.conf.j2
+      dest: /etc/nginx/conf.d/uchiwa-ssl.conf
+      owner: root
+      group: root
+      mode: 0644
+
+#############################
+# Finish up
+#############################
+
+  - name: Ensure services are restarted and enabled
+    service:
+      name: "{{ item }}"
+      state: restarted
+      enabled: yes
+    with_items:
+      - rabbitmq-server
+      - redis
+      - sensu-server
+      - sensu-client
+      - sensu-api
+      - uchiwa
+      - nginx
+
+  when: (ansible_distribution == "CentOS" and ansible_distribution_major_version == "7")

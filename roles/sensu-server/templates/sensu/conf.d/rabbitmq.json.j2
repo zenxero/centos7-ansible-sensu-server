@@ -1,0 +1,11 @@
+{
+  "rabbitmq": {
+    "host": "{{ ansible_default_ipv4.address }}",
+    "port": 5672,
+    "vhost": "/sensu",
+    "user": "{{ sensu_user }}",
+    "password": "{{ sensu_password }}",
+    "heartbeat": 30,
+    "prefetch": 50
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "check_salt_runtime": {
+      "command": "{{ nrpe_lib }}/check_file_age -w 7200 -c 10800 -f /var/cache/salt/minion/highstate.cache.p",
+      "standalone": true,
+      "interval": 60,
+      "occurrences": 5,
+      "refresh": 300
+    }
+  }
+}

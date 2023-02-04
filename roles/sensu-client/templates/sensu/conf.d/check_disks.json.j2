@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "check_disks": {
+      "command": "{{ nrpe_lib }}/check_disk -w 5120 -c 3072 -C -w 5% -c 2% -p / -p /boot -p /var -p /tmp -N ext2 -N ext3 -N ext4 -N xfs -I '/*docker*' -e",
+      "standalone": true,
+      "interval": 60,
+      "occurrences": 5,
+      "refresh": 300
+    }
+  }
+}

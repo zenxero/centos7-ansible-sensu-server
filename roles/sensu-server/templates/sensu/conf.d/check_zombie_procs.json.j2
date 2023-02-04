@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "check_zombie_procs": {
+      "command": "{{ nrpe_lib }}/check_procs -w 5 -c 10 -s Z",
+      "standalone": true,
+      "interval": 60,
+      "occurrences": 5,
+      "refresh": 300
+    }
+  }
+}

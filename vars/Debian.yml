@@ -1,0 +1,5 @@
+#
+# Nagios plugin client variables for Debian-based systems like Ubuntu.
+#
+
+nrpe_lib: /usr/lib/nagios/plugins
